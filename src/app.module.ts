@@ -1,13 +1,9 @@
 import * as path from 'path';
 import { Module } from '@nestjs/common';
-import { AppController } from './app.controller';
-import { AppService } from './app.service';
 import { TypeOrmModule } from '@nestjs/typeorm';
-import { UsersModule } from './modules/users/users.module';
 import { ConfigModule } from '@nestjs/config';
-import { ProjectsModule } from './modules/projects/projects.module';
+import { UsersModule } from './modules/users/users.module';
 import { AuthModule } from './modules/auth/auth.module';
-
 @Module({
   imports: [
     ConfigModule.forRoot({
@@ -23,11 +19,10 @@ import { AuthModule } from './modules/auth/auth.module';
       entities: [path.join(__dirname, '**', '*.entity.{ts,js}')],
       synchronize: process.env.NODE_ENV === 'development' ? true : false,
     }),
-    UsersModule,
-    ProjectsModule,
     AuthModule,
+    UsersModule,
   ],
-  controllers: [AppController],
-  providers: [AppService],
+  controllers: [],
+  providers: [],
 })
 export class AppModule {}
