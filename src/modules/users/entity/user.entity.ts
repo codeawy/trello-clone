@@ -1,20 +1,26 @@
-import { Project } from 'src/modules/projects/entity/project.entity';
-import { Entity, Column, PrimaryGeneratedColumn, OneToMany } from 'typeorm';
+import { Entity, PrimaryGeneratedColumn, Column, BeforeInsert } from 'typeorm';
+import * as bcrypt from 'bcrypt';
 
-@Entity()
+@Entity('users')
 export class User {
-  @PrimaryGeneratedColumn()
-  id: number;
+  @PrimaryGeneratedColumn('uuid')
+  id: string;
+
+  @Column({ unique: true })
+  email: string;
 
   @Column()
-  firstName: string;
+  password: string;
 
-  @Column()
-  lastName: string;
+  @Column({ default: false })
+  isVerified: boolean;
 
-  @Column({ default: true })
-  isActive: boolean;
+  @BeforeInsert()
+  async hashPassword() {
+    this.password = await bcrypt.hash(this.password, 10);
+  }
 
-  @OneToMany(() => Project, (project) => project.user)
-  projects: Project[];
+  async validatePassword(password: string): Promise<boolean> {
+    return bcrypt.compare(password, this.password);
+  }
 }
