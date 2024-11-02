@@ -5,7 +5,6 @@ import { TypeOrmModule } from '@nestjs/typeorm';
 import { User } from '../users/entity/user.entity';
 import { JwtModule } from '@nestjs/jwt';
 import { ConfigModule, ConfigService } from '@nestjs/config';
-import { envVariables } from 'src/constants/env-variables';
 
 @Module({
   imports: [
@@ -14,7 +13,7 @@ import { envVariables } from 'src/constants/env-variables';
       imports: [ConfigModule],
       inject: [ConfigService],
       useFactory: async (configService: ConfigService) => ({
-        secret: configService.get<string>(envVariables.JWT_SECRET),
+        secret: configService.get<string>('JWT_SECRET'),
         signOptions: { expiresIn: '1h' },
       }),
     }),
