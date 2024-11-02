@@ -1,6 +1,5 @@
 import { Entity, Column, PrimaryGeneratedColumn, BeforeInsert } from 'typeorm';
 import * as bcrypt from 'bcrypt';
-import { v4 as uuidv4 } from 'uuid';
 
 @Entity('users')
 export class User {
@@ -23,18 +22,14 @@ export class User {
   isVerified: boolean;
 
   @Column({ nullable: true })
-  verificationToken: string;
-
-  @Column({ nullable: true })
-  passwordResetToken: string;
-
-  @Column({ type: 'timestamp', nullable: true })
-  passwordResetExpires: Date;
+  verificationCode: string;
 
   @BeforeInsert()
   async hashPassword() {
     this.password = await bcrypt.hash(this.password, 10);
-    this.verificationToken = uuidv4();
+    this.verificationCode = Math.floor(
+      100000 + Math.random() * 900000,
+    ).toString(); // Generate a 6-digit code
   }
 
   async comparePassword(password: string) {

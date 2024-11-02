@@ -21,3 +21,11 @@ export class LoginDto {
   @IsString()
   password: string;
 }
+
+export class VerifyEmailDto {
+  @IsEmail()
+  email: string;
+
+  @IsString()
+  code: string;
+}

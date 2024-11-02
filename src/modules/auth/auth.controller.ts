@@ -1,15 +1,6 @@
-import {
-  Body,
-  Controller,
-  Post,
-  UseGuards,
-  Get,
-  Query,
-  Patch,
-  Req,
-} from '@nestjs/common';
+import { Body, Controller, Post, UseGuards, Patch, Req } from '@nestjs/common';
 import { AuthService } from './auth.service';
-import { LoginDto, RegisterDto } from './dto/user.dto';
+import { LoginDto, RegisterDto, VerifyEmailDto } from './dto/user.dto';
 import { CheckIfUserExists } from '../users/guards/check-if-user-exists.guard';
 import {
   ForgotPasswordDto,
@@ -34,9 +25,9 @@ export class AuthController {
     return this.authService.login(body);
   }
 
-  @Get('verify')
-  verifyEmail(@Query('token') token: string) {
-    return this.authService.verifyEmail(token);
+  @Post('verify')
+  verifyEmail(@Body() body: VerifyEmailDto) {
+    return this.authService.verifyEmail(body);
   }
 
   @Post('forgot-password')

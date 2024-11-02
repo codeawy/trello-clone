@@ -5,7 +5,7 @@ import { TypeOrmModule } from '@nestjs/typeorm';
 import { User } from '../users/entity/user.entity';
 import { JwtModule } from '@nestjs/jwt';
 import { ConfigModule, ConfigService } from '@nestjs/config';
-import { MailService } from 'src/common/mail.service';
+import { MailService } from 'src/common/mail/mail.service';
 import { JwtStrategy } from './strategies/jwt.strategy';
 
 @Module({

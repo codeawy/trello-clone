@@ -1,12 +1,16 @@
-import { Injectable, UnauthorizedException } from '@nestjs/common';
-import { Repository, MoreThan } from 'typeorm';
+import {
+  Injectable,
+  UnauthorizedException,
+  NotFoundException,
+} from '@nestjs/common';
+import { Repository } from 'typeorm';
 import { User } from '../users/entity/user.entity';
 import { InjectRepository } from '@nestjs/typeorm';
-import { LoginDto, RegisterDto } from './dto/user.dto';
+import { LoginDto, RegisterDto, VerifyEmailDto } from './dto/user.dto';
 import { JwtService } from '@nestjs/jwt';
-import { v4 as uuidv4 } from 'uuid';
-import { addHours } from 'date-fns';
-import { MailService } from 'src/common/mail.service';
+import { MailService } from '../../common/mail/mail.service';
+import * as bcrypt from 'bcrypt';
+
 @Injectable()
 export class AuthService {
   constructor(
@@ -20,23 +24,23 @@ export class AuthService {
     const savedUser = await this.usersRepository.save(user);
     await this.mailService.sendVerificationEmail(
       savedUser.email,
-      savedUser.verificationToken,
+      savedUser.verificationCode,
     );
     return {
       message:
-        'User registered successfully. Please check your email to verify your account.',
+        'User registered successfully. Please check your email for the verification code.',
     };
   }
 
-  async verifyEmail(token: string) {
+  async verifyEmail(body: VerifyEmailDto) {
     const user = await this.usersRepository.findOne({
-      where: { verificationToken: token },
+      where: { email: body.email, verificationCode: body.code },
     });
     if (!user) {
-      throw new UnauthorizedException('Invalid verification token');
+      throw new UnauthorizedException('Invalid verification code');
     }
     user.isVerified = true;
-    user.verificationToken = null;
+    user.verificationCode = null;
     await this.usersRepository.save(user);
     return { message: 'Email verified successfully' };
   }
@@ -71,47 +75,35 @@ export class AuthService {
   async forgotPassword(email: string) {
     const user = await this.usersRepository.findOne({ where: { email } });
     if (!user) {
-      // To prevent email enumeration, respond with success even if user doesn't exist
-      return {
-        message:
-          'If that email address is in our system, we have sent a password reset link.',
-      };
+      throw new NotFoundException('User not found');
     }
 
-    user.passwordResetToken = uuidv4();
-    user.passwordResetExpires = addHours(new Date(), 1); // Token valid for 1 hour
+    user.verificationCode = Math.floor(
+      100000 + Math.random() * 900000,
+    ).toString();
     await this.usersRepository.save(user);
 
-    await this.mailService.sendPasswordResetEmail(
+    await this.mailService.sendVerificationEmail(
       user.email,
-      user.passwordResetToken,
+      user.verificationCode,
     );
-    return {
-      message:
-        'If that email address is in our system, we have sent a password reset link.',
-    };
+
+    return { message: 'Verification code sent to your email' };
   }
 
   async resetPassword(token: string, newPassword: string) {
     const user = await this.usersRepository.findOne({
-      where: {
-        passwordResetToken: token,
-        passwordResetExpires: MoreThan(new Date()),
-      },
+      where: { verificationCode: token },
     });
-
     if (!user) {
-      throw new UnauthorizedException(
-        'Invalid or expired password reset token',
-      );
+      throw new UnauthorizedException('Invalid or expired token');
     }
 
-    user.password = newPassword;
-    user.passwordResetToken = null;
-    user.passwordResetExpires = null;
+    user.password = await bcrypt.hash(newPassword, 10);
+    user.verificationCode = null;
     await this.usersRepository.save(user);
 
-    return { message: 'Password has been reset successfully' };
+    return { message: 'Password reset successfully' };
   }
 
   async changePassword(
@@ -121,7 +113,7 @@ export class AuthService {
   ) {
     const user = await this.usersRepository.findOne({ where: { id: userId } });
     if (!user) {
-      throw new UnauthorizedException('User not found');
+      throw new NotFoundException('User not found');
     }
 
     const isPasswordValid = await user.comparePassword(currentPassword);
@@ -129,8 +121,9 @@ export class AuthService {
       throw new UnauthorizedException('Current password is incorrect');
     }
 
-    user.password = newPassword;
+    user.password = await bcrypt.hash(newPassword, 10);
     await this.usersRepository.save(user);
+
     return { message: 'Password changed successfully' };
   }
 }
